@@ -1,6 +1,14 @@
 # task_manager.py
 # A simple command-line task manager
 
+import json
+
+# Function to save tasks to file
+def save_tasks():
+    with open('tasks.json', 'w') as file:
+        json.dump(tasks, file, indent=2)
+    print("💾 Tasks saved!")
+
 tasks = []  # List to store task dictionaries
 
 # Main program loop
@@ -26,6 +34,7 @@ while True:
             "completed": False
         }
         tasks.append(task)
+        save_tasks()
         print("✓ Task added successfully!")
         
     elif choice == "2":
@@ -56,6 +65,7 @@ while True:
                 task_index = int(task_num) - 1  # Convert to 0-based index
                 if 0 <= task_index < len(tasks):
                     tasks[task_index]["completed"] = True
+                    save_tasks()
                     print("✓ Task marked as complete!")
                 else:
                     print("❌ Invalid task number!")
@@ -79,6 +89,7 @@ while True:
                 task_index = int(task_num) - 1  # Convert to 0-based index
                 if 0 <= task_index < len(tasks):
                     deleted_task = tasks.pop(task_index)
+                    save_tasks()
                     print(f"✓ Deleted: {deleted_task['description']}")
                 else:
                     print("❌ Invalid task number!")
