@@ -9,18 +9,41 @@ def save_tasks():
         json.dump(tasks, file, indent=2)
     print("💾 Tasks saved!")
 
-tasks = []  # List to store task dictionaries
+# Function to load tasks from file
+def load_tasks():
+    try:
+        with open('tasks.json', 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        # File doesn't exist yet - eturn empty list
+        return []
+    except json.JSONDecodeError:
+        # File exists but is corrupted - eturn empty list
+        print("⚠️  Warning: tasks file was corrupted. Starting fresh.")
+        return []
+
+# Load existing tasks or start with empty list
+tasks = load_tasks()
+if len(tasks) > 0:
+    print(f"📋 Loaded {len(tasks)} task(s) from previous session")
 
 # Main program loop
 while True:
     # Display the menu
-    print("\n=== Task Manager ===")
+    print("\n" + "="*30)
+    print("      TASK MANAGER")
+    print("="*30)
+    print(f"You have {len(tasks)} task(s)")
+    incomplete = sum(1 for task in tasks if not task["completed"])
+    print(f"{incomplete} incomplete | {len(tasks) - incomplete} completed")
+    print("="*30)
     print("1. Add Task")
     print("2. View Tasks")
     print("3. Mark Task Complete")
     print("4. Delete Task")
     print("5. Exit")
-    print("====================")
+    print("="*30)
+
     
     # Get user's choice
     choice = input("Enter your choice (1-5): ")
@@ -39,14 +62,28 @@ while True:
         
     elif choice == "2":
         # View all tasks
-        print("\n--- Your Tasks ---")
+        print("\n" + "-"*40)
+        print("           YOUR TASKS")
+        print("-"*40)
         if len(tasks) == 0:
             print("No tasks yet. Add one to get started!")
         else:
-            for i, task in enumerate(tasks, 1):
-                status = "✓" if task["completed"] else " "
-                print(f"{i}. [{status}] {task['description']}")
-        print("------------------")
+            incomplete_tasks = [t for t in tasks if not t["completed"]]
+            completed_tasks = [t for t in tasks if t["completed"]]
+        
+            if incomplete_tasks:
+                print("\n📝 TO DO:")
+                for i, task in enumerate(tasks, 1):
+                    if not task["completed"]:
+                        print(f"  {i}. [ ] {task['description']}")
+        
+            if completed_tasks:
+                print("\n✅ COMPLETED:")
+                for i, task in enumerate(tasks, 1):
+                    if task["completed"]:
+                        print(f"  {i}. [✓] {task['description']}")
+        print("-"*40)
+
         
     elif choice == "3":
         # Mark task complete
