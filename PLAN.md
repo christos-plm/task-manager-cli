@@ -36,12 +36,3 @@ The program should create a to-do list for the user
 3. Delete Task
 4. Mark Complete
 5. Exit
-Enter your choice: 1
-Enter task description: Buy groceries
-Task Added
-Enter task description: Take out trash
-Task Added
-Enter your choice: 2
-Your Tasks:
-1. Buy groceries []
-2. Take out trash []
