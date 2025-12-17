@@ -8,9 +8,14 @@ from datetime import datetime
 class Task:
     """Represents a single task"""
     
-    def __init__(self, description, completed=False, created_at=None):
+    def __init__(self, description, completed=False, created_at=None, priority='medium'):
         self.description = description
         self.completed = completed
+        # Validate and set priority
+        if isinstance(priority, str) and priority.lower() in ['low', 'medium', 'high']:
+            self.priority = priority.lower()
+        else:
+            self.priority = 'medium'
         # If created_at is provided (loading from file), use it. Otherwise, use now.
         if created_at:
             self.created_at = datetime.fromisoformat(created_at)
@@ -25,18 +30,35 @@ class Task:
         """Mark this task as incomplete"""
         self.completed = False
     
+    def set_priority(self, priority):
+        """Set the priority of the task"""
+        if isinstance(priority, str) and priority.lower() in ['low', 'medium', 'high']:
+            self.priority = priority.lower()
+            return True
+        return False
+    
     def to_dict(self):
         """Convert task to dictionary for JSON saving"""
         return {
             "description": self.description,
             "completed": self.completed,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "priority": self.priority
         }
     
     def __str__(self):
         """String representation of the task"""
         status = "✓" if self.completed else " "
-        return f"[{status}] {self.description}"
+        
+        # Priority indicator
+        if self.priority == 'high':
+            priority_symbol = "🔴"
+        elif self.priority == 'medium':
+            priority_symbol = "🟡"
+        else:  # low
+            priority_symbol = "🟢"
+        
+        return f"[{status}] {priority_symbol} {self.description}"
 
 # ===== TASK MANAGER CLASS =====
 class TaskManager:
@@ -47,9 +69,9 @@ class TaskManager:
         self.tasks = []
         self.load_tasks()
     
-    def add_task(self, description):
+    def add_task(self, description, priority="medium"):
         """Add a new task"""
-        task = Task(description)
+        task = Task(description, priority=priority)
         self.tasks.append(task)
         self.save_tasks()
         return task
@@ -107,7 +129,8 @@ class TaskManager:
                     Task(
                         t['description'],
                         t.get('completed', False),
-                        t.get('created_at')
+                        t.get('created_at'),
+                        t.get('priority', 'medium')
                     )
                     for t in task_dicts
                 ]
@@ -122,6 +145,22 @@ class TaskManager:
         except Exception as e:
             print(f"⚠️  Error loading tasks: {e}")
             self.tasks = []
+            
+    def set_task_priority(self, index, priority):
+        """Set priority for a task"""
+        task = self.get_task(index)
+        if task and task.set_priority(priority):
+            self.save_tasks()
+            return True
+        return False
+
+    def get_tasks_by_priority(self):
+        """Return tasks grouped by priority"""
+        high = [t for t in self.tasks if t.priority == 'high' and not t.completed]
+        medium = [t for t in self.tasks if t.priority == 'medium' and not t.completed]
+        low = [t for t in self.tasks if t.priority == 'low' and not t.completed]
+        completed = [t for t in self.tasks if t.completed]
+        return high, medium, low, completed
 
 # ===== MAIN PROGRAM =====
 def main():
@@ -144,8 +183,9 @@ def main():
         print("1. Add Task")
         print("2. View Tasks")
         print("3. Mark Task Complete")
-        print("4. Delete Task")
-        print("5. Exit")
+        print("4. Change Task Priority")
+        print("5. Delete Task")
+        print("6. Exit")
         print("="*30)
         
         # Get user's choice
@@ -155,8 +195,18 @@ def main():
         if choice == "1":
             # Add a task
             description = input("Enter task description: ")
-            manager.add_task(description)
+            print("\nPriority level:")
+            print("  1. Low 🟢")
+            print("  2. Medium 🟡")
+            print("  3. High 🔴")
+            priority_choice = input("Choose priority (1-3, default is 2): ").strip()
+            
+            priority_map = {'1': 'low', '2': 'medium', '3': 'high'}
+            priority = priority_map.get(priority_choice, 'medium')
+            
+            manager.add_task(description, priority)
             print("✓ Task added successfully!")
+
             
         elif choice == "2":
             # View all tasks
@@ -168,21 +218,33 @@ def main():
             if len(tasks) == 0:
                 print("No tasks yet. Add one to get started!")
             else:
-                incomplete_tasks = [t for t in tasks if not t.completed]
-                completed_tasks = [t for t in tasks if t.completed]
+                high, medium, low, completed = manager.get_tasks_by_priority()
                 
-                if incomplete_tasks:
-                    print("\n📝 TO DO:")
+                if high:
+                    print("\n🔴 HIGH PRIORITY:")
                     for i, task in enumerate(tasks, 1):
-                        if not task.completed:
+                        if task in high:
                             print(f"  {i}. {task}")
                 
-                if completed_tasks:
+                if medium:
+                    print("\n🟡 MEDIUM PRIORITY:")
+                    for i, task in enumerate(tasks, 1):
+                        if task in medium:
+                            print(f"  {i}. {task}")
+                
+                if low:
+                    print("\n🟢 LOW PRIORITY:")
+                    for i, task in enumerate(tasks, 1):
+                        if task in low:
+                            print(f"  {i}. {task}")
+                
+                if completed:
                     print("\n✅ COMPLETED:")
                     for i, task in enumerate(tasks, 1):
                         if task.completed:
                             print(f"  {i}. {task}")
             print("-"*40)
+
             
         elif choice == "3":
             # Mark task complete
@@ -205,8 +267,43 @@ def main():
                         print("❌ Invalid task number!")
                 except ValueError:
                     print("❌ Please enter a valid number!")
-        
+                    
         elif choice == "4":
+            # Change task priority
+            tasks = manager.get_all_tasks()
+            if len(tasks) == 0:
+                print("No tasks to change priority!")
+            else:
+                # Show tasks first
+                print("\n--- Your Tasks ---")
+                for i, task in enumerate(tasks, 1):
+                    print(f"{i}. {task}")
+                
+                # Ask which one to change
+                task_num = input("\nEnter task number: ")
+                try:
+                    task_index = int(task_num) - 1
+                    task = manager.get_task(task_index)
+                    if task:
+                        print("\nNew priority:")
+                        print("  1. Low 🟢")
+                        print("  2. Medium 🟡")
+                        print("  3. High 🔴")
+                        priority_choice = input("Choose priority (1-3): ").strip()
+                        
+                        priority_map = {'1': 'low', '2': 'medium', '3': 'high'}
+                        if priority_choice in priority_map:
+                            manager.set_task_priority(task_index, priority_map[priority_choice])
+                            print("✓ Priority updated!")
+                        else:
+                            print("❌ Invalid priority choice!")
+                    else:
+                        print("❌ Invalid task number!")
+                except ValueError:
+                    print("❌ Please enter a valid number!")
+
+        
+        elif choice == "5":
             # Delete task
             tasks = manager.get_all_tasks()
             if len(tasks) == 0:
@@ -229,14 +326,14 @@ def main():
                 except ValueError:
                     print("❌ Please enter a valid number!")
             
-        elif choice == "5":
+        elif choice == "6":
             # Exit
             print("Goodbye! Stay productive!")
             break
             
         else:
             # Invalid choice
-            print("❌ Invalid choice. Please enter 1-5.")
+            print("❌ Invalid choice. Please enter 1-6.")
 
 
 # Run the program
