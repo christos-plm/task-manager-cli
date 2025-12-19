@@ -2,13 +2,15 @@
 # A simple command-line task manager
 
 import json
+import sqlite3
 from datetime import datetime
 
 # ===== TASK CLASS =====
 class Task:
     """Represents a single task"""
     
-    def __init__(self, description, completed=False, created_at=None, priority='medium'):
+    def __init__(self, description, completed=False, created_at=None, priority='medium', task_id=None):
+        self.id = task_id
         self.description = description
         self.completed = completed
         # Validate and set priority
@@ -62,18 +64,46 @@ class Task:
 
 # ===== TASK MANAGER CLASS =====
 class TaskManager:
-    """Manages a collection of tasks"""
+    """Manages a collection of tasks using SQLite DB"""
     
-    def __init__(self, filename='tasks.json'):
-        self.filename = filename
+    def __init__(self, db_name='tasks.db'):
+        self.db_name = db_name
         self.tasks = []
+        self._init_database()
         self.load_tasks()
+    
+    def _init_database(self):
+        """Create the tasks table if it doesn't exist"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                completed INTEGER DEFAULT 0,
+                priority TEXT DEFAULT 'medium',
+                created_at TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+        conn.close()
     
     def add_task(self, description, priority="medium"):
         """Add a new task"""
         task = Task(description, priority=priority)
+        
+        # Insert into database
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO tasks (description, completed, priority, created_at)
+            VALUES (?, ?, ?, ?)
+        ''', (task.description, int(task.completed), task.priority, task.created_at.isoformat()))
+        task.id = cursor.lastrowid # Autogeerate ID
+        conn.commit()
+        conn.close()
+        
         self.tasks.append(task)
-        self.save_tasks()
         return task
     
     def get_all_tasks(self):
@@ -89,8 +119,16 @@ class TaskManager:
     def delete_task(self, index):
         """Delete a task by index"""
         if 0 <= index < len(self.tasks):
+            task = self.tasks[index]
+            
+            # Delete from database
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM tasks WHERE id = ?', (task.id,))
+            conn.commit()
+            conn.close()
+            
             deleted_task = self.tasks.pop(index)
-            self.save_tasks()
             return deleted_task
         return None
     
@@ -99,10 +137,32 @@ class TaskManager:
         task = self.get_task(index)
         if task:
             task.mark_complete()
-            self.save_tasks()
+            
+            # Update in database
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE tasks SET completed = ? WHERE id = ?', (1, task.id))
+            conn.commit()
+            conn.close()
+            
             return True
         return False
-    
+        
+    def set_task_priority(self, index, priority):
+        """Set priority for a task"""
+        task = self.get_task(index)
+        if task and task.set_priority(priority):
+            
+            # Update in database
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            cursor.execute('UPDATE tasks SET priority = ? WHERE id = ?', (task.priority, task.id))
+            conn.commit()
+            conn.close()
+            
+            return True
+        return False
+
     def get_incomplete_count(self):
         """Return number of incomplete tasks"""
         return sum(1 for task in self.tasks if not task.completed)
@@ -111,48 +171,27 @@ class TaskManager:
         """Return number of completed tasks"""
         return sum(1 for task in self.tasks if task.completed)
     
-    def save_tasks(self):
-        """Save all tasks to JSON file"""
-        try:
-            with open(self.filename, 'w') as file:
-                task_dicts = [task.to_dict() for task in self.tasks]
-                json.dump(task_dicts, file, indent=2)
-        except Exception as e:
-            print(f"⚠️  Error saving tasks: {e}")
-    
     def load_tasks(self):
-        """Load tasks from JSON file"""
-        try:
-            with open(self.filename, 'r') as file:
-                task_dicts = json.load(file)
-                self.tasks = [
-                    Task(
-                        t['description'],
-                        t.get('completed', False),
-                        t.get('created_at'),
-                        t.get('priority', 'medium')
-                    )
-                    for t in task_dicts
-                ]
-                if len(self.tasks) > 0:
-                    print(f"📋 Loaded {len(self.tasks)} task(s) from previous session")
-        except FileNotFoundError:
-            # File doesn't exist yet
-            self.tasks = []
-        except json.JSONDecodeError:
-            print("⚠️  Warning: tasks file was corrupted. Starting fresh.")
-            self.tasks = []
-        except Exception as e:
-            print(f"⚠️  Error loading tasks: {e}")
-            self.tasks = []
-            
-    def set_task_priority(self, index, priority):
-        """Set priority for a task"""
-        task = self.get_task(index)
-        if task and task.set_priority(priority):
-            self.save_tasks()
-            return True
-        return False
+        """Load all tasks from database"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, description, completed, priority, created_at FROM tasks')
+        rows = cursor.fetchall()
+        conn.close()
+        
+        self.tasks = []
+        for row in rows:
+            task = Task(
+                description=row[1],
+                completed=bool(row[2]),
+                created_at=row[4],
+                priority=row[3],
+                task_id=row[0]
+            )
+            self.tasks.append(task)
+        
+        if len(self.tasks) > 0:
+            print(f"📋 Loaded {len(self.tasks)} task(s) from database")
 
     def get_tasks_by_priority(self):
         """Return tasks grouped by priority"""
