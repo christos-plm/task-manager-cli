@@ -36,3 +36,37 @@ The program should create a to-do list for the user
 3. Delete Task
 4. Mark Complete
 5. Exit
+
+---
+
+## COMPLETED FEATURES ✅
+
+### Week 1 (Completed)
+- [x] Display a menu with options
+- [x] Add a new task
+- [x] View all tasks in a list
+- [x] Exit the program
+- [x] Menu loops until user exits
+- [x] Assign ID numbers to tasks
+- [x] Delete a task by ID
+- [x] Mark a task as complete/incomplete
+- [x] Save tasks to file
+- [x] Load tasks when program starts
+
+### Week 2 (Completed)
+- [x] Created Task class with OOP
+- [x] Created TaskManager class
+- [x] Refactored entire codebase to use OOP
+- [x] Added priority levels (low, medium, high)
+- [x] Added visual indicators (colored emojis)
+- [x] Migrated from JSON to SQLite database
+- [x] Implemented proper CRUD operations
+
+## CURRENT STATE
+
+**Lines of code:** 385
+**Commits made:** 14
+**Days worked:** 10 days
+**Total study time:** ~20 hours
+
+

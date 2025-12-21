@@ -26,14 +26,19 @@ class Task:
     
     def mark_complete(self):
         """Mark this task as completed"""
+        # Changes the completed status from False to True
+        # This affects how the task appears in the UI (shows checkmark)
         self.completed = True
     
     def mark_incomplete(self):
         """Mark this task as incomplete"""
+        # Changes the completed status from True to False
+        # This affects how the task appears in the UI (no checkmark)
         self.completed = False
     
     def set_priority(self, priority):
         """Set the priority of the task"""
+        #
         if isinstance(priority, str) and priority.lower() in ['low', 'medium', 'high']:
             self.priority = priority.lower()
             return True
