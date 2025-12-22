@@ -19,3 +19,17 @@
 - Practice more complex queries
 - Learn about JOINs in depth
 - Understand database design principles
+
+---
+
+## Week 3 - Day 1: SQL JOINs
+
+**INNER JOIN:**
+- Combines rows from two tables where the join condition is met
+- Syntax: `FROM table1 JOIN table2 ON table1.id = table2.id`
+- Only returns matching rows
+
+**Key Concepts:**
+- Primary Key: 
+- Foreign Key: 
+- Multi-table JOINs: 
