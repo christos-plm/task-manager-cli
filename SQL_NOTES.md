@@ -33,3 +33,26 @@
 - Primary Key: 
 - Foreign Key: 
 - Multi-table JOINs: 
+
+---
+
+## Week 3 - Day 2: Aggregate Functions & GROUP BY
+
+### Aggregate Functions I Learned
+
+- **COUNT()**: 
+- **SUM()**: 
+- **AVG()**: 
+- **MAX()**: 
+- **MIN()**: 
+
+### GROUP BY
+
+- analyze data by categories
+
+### HAVING vs WHERE
+
+- WHERE: filters rows BEFORE grouping
+- HAVING: filters groups AFTER aggregation
+
+
